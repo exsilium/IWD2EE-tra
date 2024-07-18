@@ -60,7 +60,11 @@ if ("source" in options) {
   // Convert .tra files to .json
   traLanguages.forEach((language) => {
     traFiles.forEach((traFile) => {
-      parseTraFile(path.join(resolvedPath, 'iwd2ee', 'tra', language[0], traFile), path.join(parentDir, 'l10n', language[1], traFile + '.json'));
+      let encoding = 'utf-8';
+      if(language[1] === 'ru') {
+        encoding = 'win1251';
+      }
+      parseTraFile(path.join(resolvedPath, 'iwd2ee', 'tra', language[0], traFile), path.join(parentDir, 'l10n', language[1], traFile + '.json'), encoding);
     });
   });
 

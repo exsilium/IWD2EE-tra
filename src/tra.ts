@@ -1,15 +1,21 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as readline from 'readline';
+import iconv from 'iconv-lite';
 
 interface JsonOutput {
   [key: string]: string;
 }
 
-async function parseTraFile(inputFilePath: string, outputFilePath: string): Promise<void> {
+async function parseTraFile(inputFilePath: string, outputFilePath: string, encoding: string = 'utf-8'): Promise<void> {
   const fileStream = fs.createReadStream(inputFilePath);
+
+  // We check if we should use decoded Stream of just a fileStream
+  const enableDecode = ['win1251', 'windows-1251', 'cp1251'].includes(encoding.toLowerCase());
+  const input = enableDecode ? fileStream.pipe(iconv.decodeStream(encoding)) : fileStream;
+
   const rl = readline.createInterface({
-    input: fileStream,
+    input: input,
     crlfDelay: Infinity
   });
 

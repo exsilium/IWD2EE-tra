@@ -3,7 +3,9 @@ import * as path from 'path';
 import { fileURLToPath } from 'url';
 import figlet from 'figlet';
 import { Command } from '@commander-js/extra-typings';
+import * as commander from 'commander';
 import { parseTraFile } from './tra.js';
+import { translateFile } from "./translator.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const parentDir = path.dirname(__dirname);
@@ -14,16 +16,61 @@ console.log("IWD2EE Translation tool\n");
 
 program
   .command("init", { isDefault: true })
-  .description("default command, inits json translation files.")
+  .description("Default command, inits json translation files.")
   .action((source, destination) => {});
 
 program
+  .command("translate <source_json> <target_json>")
+  .description("Experimental translation of .json file using OpenAI (English->Estonian)")
+  .option("-k --key <openapi_key>", "OpenAPI Key for remote translate queries")
+  .option("-l --limit <limit>", "Limit number of items to be translated, defaults to Infinity", parseInteger)
+  .option("-s --start <startIndex>", "Start from the n'th element in the source json file", parseInteger)
+  .action((source_json, target_json, options) => {
+    if(!("key" in options)) {
+      console.log("Please provide OpenAI API Key in command call (-k)");
+      process.exit(1);
+    }
+    console.log("Translate command called");
+    console.log("Source .json: " + source_json);
+    console.log("Target .json: " + target_json);
+
+    const resolvedInputFile = path.resolve(process.cwd(), <string> source_json);
+    const resolvedOutputFile = path.resolve(process.cwd(), target_json);
+
+    // Check that the file exists
+    checkFileExists(resolvedInputFile).then(exists => {
+      console.log("Input file " + (exists ? 'exists' : 'does not exist'));
+    }).catch(error => {
+      console.error('Failed to check the input file:', error);
+    });
+
+    const startIndex = options.start || 0;
+    const limit = options.limit || Infinity;
+
+    translateFile(resolvedInputFile, options.key as string, startIndex, limit);
+  });
+
+program
   .version("0.0.1")
-  .description("Utility to Allow .TRA conversion to key-value based .JSON")
-  .option("-s, --source <directory>", "IWD2EE Source Directory")
+  .description("Utility to allow .TRA conversion to key-value based .JSON")
+  .option("-i --input <file>", "Input .tra file, the output file will append .json")
+  .option("-d, --directory <directory>", "IWD2EE Source Directory")
   .parse(process.argv);
 
 const options = program.opts();
+
+if ("input" in options) {
+  const resolvedInputFile = path.resolve(process.cwd(), <string> options.input);
+
+  // Check that the file exists
+  checkFileExists(resolvedInputFile).then(exists => {
+    console.log("Input file " + (exists ? 'exists' : 'does not exist'));
+  }).catch(error => {
+    console.error('Failed to check the input file:', error);
+  });
+
+  parseTraFile(resolvedInputFile, resolvedInputFile + '.json');
+}
 
 if ("source" in options) {
   const resolvedPath = path.resolve(process.cwd(), <string> options.source);
@@ -80,4 +127,21 @@ async function checkTraDirExists(baseDir: string, language: string): Promise<boo
   } catch {
     return false;
   }
+}
+
+async function checkFileExists(file: string): Promise<boolean> {
+  try {
+    await fs.promises.access(file, fs.constants.F_OK);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function parseInteger(value: string): number {
+  const parsedValue = parseInt(value, 10);
+  if (isNaN(parsedValue)) {
+    throw new commander.InvalidOptionArgumentError('Limit must be a valid integer');
+  }
+  return parsedValue;
 }

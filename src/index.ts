@@ -24,7 +24,7 @@ program
   .description("Experimental translation of .json file using OpenAI (English->Estonian)")
   .option("-k --key <openapi_key>", "OpenAPI Key for remote translate queries")
   .option("-l --limit <limit>", "Limit number of items to be translated, defaults to Infinity", parseInteger)
-  .option("-s --start <startIndex>", "Start from the n'th element in the source json file", parseInteger)
+  .option("-s --start <startIndex>", "Start from the n-1'th element in the source json file", parseInteger)
   .action((source_json, target_json, options) => {
     if(!("key" in options)) {
       console.log("Please provide OpenAI API Key in command call (-k)");
@@ -47,7 +47,7 @@ program
     const startIndex = options.start || 0;
     const limit = options.limit || Infinity;
 
-    translateFile(resolvedInputFile, options.key as string, startIndex, limit);
+    translateFile(resolvedInputFile, resolvedOutputFile, options.key as string, startIndex, limit);
   });
 
 program
@@ -72,8 +72,8 @@ if ("input" in options) {
   parseTraFile(resolvedInputFile, resolvedInputFile + '.json');
 }
 
-if ("source" in options) {
-  const resolvedPath = path.resolve(process.cwd(), <string> options.source);
+if ("directory" in options) {
+  const resolvedPath = path.resolve(process.cwd(), <string> options.directory);
   console.log("Source Path: " + resolvedPath);
 
   // Check for existing English directory

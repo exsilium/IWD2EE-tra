@@ -34,22 +34,23 @@ async function parseTraFile(inputFilePath: string, outputFilePath: string, encod
         currentKey = match[1];
         currentValue = [];
         const startOfValue = line.indexOf('~', match[0].length - 1) + 1;
-        const linePart = line.substring(startOfValue).trimStart();
-        if (linePart.endsWith('~')) {
-          currentValue.push(linePart.slice(0, -1).trimEnd());
-          finalizeKeyValue();
-        } else {
-          currentValue.push(linePart);
-        }
+        processLine(line, startOfValue);
       }
     } else if (recording) {
-      const lineTrim = line.trimEnd();
-      if (lineTrim.endsWith('~')) {
-        currentValue.push(lineTrim.slice(0, -1));
-        finalizeKeyValue();
-      } else {
-        currentValue.push(line);
-      }
+      processLine(line, 0);
+    }
+  }
+
+  function processLine(line: string, startIndex: number) {
+    const linePart = line.substring(startIndex).trimEnd();
+    const endIndex = linePart.lastIndexOf('~');
+    if (endIndex !== -1) {
+      const value = linePart.substring(0, endIndex);
+      const tagMatch = linePart.substring(endIndex + 1).match(/^\s*\[([^\]]+)\]\s*$/);
+      currentValue.push(value + (tagMatch ? tagMatch[0] : ''));
+      finalizeKeyValue();
+    } else {
+      currentValue.push(linePart);
     }
   }
 

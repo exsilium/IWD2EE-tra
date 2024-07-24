@@ -7,12 +7,11 @@ const translateText = async (text: string, apiKey: string): Promise<string> => {
 
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-4-turbo",
       messages: [
-        { role: 'system', content: 'Translate from English to Estonian, Icewind Dale 2, keeping the tone' },
+        { role: 'system', content: 'Translate to Estonian, Icewind Dale 2, keeping the tone. Be short and precise. If not possible to translate, start the response with "!$!$!$"' },
         { role: 'user', content: `${text}` }
-      ],
-      temperature: 0.2
+      ]
     });
 
     // Extract and log token usage
@@ -23,9 +22,10 @@ const translateText = async (text: string, apiKey: string): Promise<string> => {
 
     const translatedText = response.choices[0].message?.content;
 
-    if (translatedText && !translatedText.includes("Please provide the text you'd like to translate")) {
+    if (translatedText && !translatedText.includes("!$!$!$")) {
       return translatedText;
-    } else {
+    }
+    else {
       return text; // Return the original text if the translation is unclear or indicates an error
     }
   } catch (error) {
@@ -45,9 +45,27 @@ const translateFile = async (filePath: string, outputFilePath: string, apiKey: s
   for (let i = startIndex; i < endIndex; i++) {
     const [key, value] = entries[i];
     if((value as string).length > 0) {
-      const translatedText = await translateText(value as string, apiKey);
-      translations[key] = translatedText;
-      console.log("Translated: " + key + ": " + translatedText);
+      const parts = splitText(value as string);
+
+      if(parts.mainText.length > 0) {
+        const translatedText = await translateText(parts.mainText, apiKey);
+
+        translations[key] = "";
+        if(parts.startTag) {
+          translations[key] = "[" + parts.startTag + "] ";
+        }
+        translations[key] += translatedText;
+
+        if(parts.endTag) {
+          translations[key] += " [" + parts.endTag + "]";
+        }
+        console.log("Translated: " + key + ": " + translations[key]);
+      }
+      else {
+        translations[key] = value as string;
+        console.log("Translation query skipped (empty textual part): " + key + ", \"" + translations[key] + "\"");
+      }
+
     }
     else {
       translations[key] = "";
@@ -59,5 +77,24 @@ const translateFile = async (filePath: string, outputFilePath: string, apiKey: s
   fs.appendFileSync(outputPath, JSON.stringify(translations, null, 2), 'utf-8');
   console.log('Finished translating the file.');
 };
+
+function splitText(inputString: string): { startTag?: string, mainText: string, endTag?: string } {
+  // Define the regex pattern to capture the tags and the inner content
+  const pattern = /^\[(.*?)\]\s*(.*?)\s*\[(.*?)\]$/;
+
+  // Execute the pattern against the input string
+  const match = inputString.match(pattern);
+
+  if (match) {
+    // Destructure the results to get tags and the main content
+    const [, startTag, mainText, endTag] = match;
+
+    // Return the parts as an object
+    return { startTag, mainText, endTag };
+  } else {
+    // If no tags are found, return the entire string as mainText
+    return { mainText: inputString };
+  }
+}
 
 export { translateFile }

@@ -16,5 +16,4 @@ This project aims to provide utility to:
 ### Bootstrapping l10n files
 - Clone this repository and the IWD2EE repository to separate locations
 - Build this project utility: `npm i; npm run build`
-- Bootstrap l10n files from .TRA files in IWD2EE - `node dist/index.js -s <folder of IWD2EE>`. This will (re-)generate the location files to `l10n` directory.
-- 
+- Bootstrap l10n files from .TRA files in IWD2EE - `node dist/index.js -d <folder of IWD2EE>`. This will generate the localisation files to `l10n` directory.

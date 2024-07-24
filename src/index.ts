@@ -24,7 +24,7 @@ program
   .description("Experimental translation of .json file using OpenAI (English->Estonian)")
   .option("-k --key <openapi_key>", "OpenAPI Key for remote translate queries")
   .option("-l --limit <limit>", "Limit number of items to be translated, defaults to Infinity", parseInteger)
-  .option("-s --start <startIndex>", "Start from the n-1'th element in the source json file", parseInteger)
+  .option("-s --start <startIndex>", "Start from the n'th element in the source json file", parseInteger)
   .action((source_json, target_json, options) => {
     if(!("key" in options)) {
       console.log("Please provide OpenAI API Key in command call (-k)");

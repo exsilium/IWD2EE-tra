@@ -5,7 +5,8 @@ import figlet from 'figlet';
 import { Command } from '@commander-js/extra-typings';
 import * as commander from 'commander';
 import { parseTraFile } from './tra.js';
-import { translateFile } from "./translator.js";
+import { translateFile, translateFileOffline, writeBatch } from "./translator.js";
+import { createBatch, listBatches, queryBatch, saveBatch, terminateBatch, uploadBatch } from "./batch.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const parentDir = path.dirname(__dirname);
@@ -22,17 +23,27 @@ program
 program
   .command("translate <source_json> <target_json>")
   .description("Experimental translation of .json file using OpenAI (English->Estonian)")
+  .option("-b --batch", "Create a Batch API input file instead of translation requests")
   .option("-k --key <openapi_key>", "OpenAPI Key for remote translate queries")
+  .option("-o --offline <dictionary_jsonl>", "Translate offline, using dictionary .JSONL for textual strings")
   .option("-l --limit <limit>", "Limit number of items to be translated, defaults to Infinity", parseInteger)
   .option("-s --start <startIndex>", "Start from the n'th element in the source json file", parseInteger)
   .action((source_json, target_json, options) => {
-    if(!("key" in options)) {
-      console.log("Please provide OpenAI API Key in command call (-k)");
+    if(!("batch" in options) && !("key" in options) && !("offline" in options)) {
+      console.log("Please provide OpenAI API Key in command call (-k), execute batch creation (-b) or offline translation (-o)");
       process.exit(1);
     }
     console.log("Translate command called");
     console.log("Source .json: " + source_json);
-    console.log("Target .json: " + target_json);
+
+    if("batch" in options) {
+      target_json = target_json + 'l';
+      console.log("Target .jsonl: " + target_json);
+
+    }
+    else {
+      console.log("Target .json: " + target_json);
+    }
 
     const resolvedInputFile = path.resolve(process.cwd(), <string> source_json);
     const resolvedOutputFile = path.resolve(process.cwd(), target_json);
@@ -47,7 +58,68 @@ program
     const startIndex = options.start || 0;
     const limit = options.limit || Infinity;
 
-    translateFile(resolvedInputFile, resolvedOutputFile, options.key as string, startIndex, limit);
+    if("batch" in options) {
+      writeBatch(resolvedInputFile, resolvedOutputFile, startIndex, limit);
+    }
+    else if("offline" in options) {
+      // Check also that the dictionary file exists
+      const resolvedDictionaryFile = path.resolve(process.cwd(), options.offline as string);
+      checkFileExists(resolvedDictionaryFile).then(exists => {
+        console.log("Dictionary file " + (exists ? 'exists' : 'does not exist'));
+      }).catch(error => {
+        console.error('Failed to check the dictionary file:', error);
+      });
+      translateFileOffline(resolvedInputFile, resolvedOutputFile, resolvedDictionaryFile, startIndex, limit);
+    }
+    else {
+      translateFile(resolvedInputFile, resolvedOutputFile, options.key as string, startIndex, limit);
+    }
+  });
+
+program
+  .command("batch")
+  .description("Experimental OpenAI interfacing via Batch API")
+  .option("-c --create <input_file_id>", "Create Batch, will return batch id")
+  .option("-k --key <openapi_key>", "OpenAPI Key for remote translate queries")
+  .option("-u --upload <source_jsonl>", "Upload Batch, will return file id")
+  .option("-l --list", "List all batches")
+  .option("-q --query <batch_id>", "Query status, will return status")
+  .option("-s --save <output_file_id>", "Retrieve and save, as results.jsonl")
+  .option("-t --terminate <batch_id>", "Terminate a running Batch")
+  .action((options) => {
+    if(!("key" in options))
+    {
+      console.log("Please define OpenAI API Key with (-k)");
+      process.exit(1);
+    }
+
+    if("upload" in options) {
+      // Validate existence of the input file and call batch upload
+      const resolvedInputFile = path.resolve(process.cwd(), <string> options.upload);
+
+      checkFileExists(resolvedInputFile).then(exists => {
+        console.log("Input file " + (exists ? 'exists' : 'does not exist'));
+      }).catch(error => {
+        console.error('Failed to check the input file:', error);
+      });
+
+      uploadBatch(resolvedInputFile, options.key as string);
+    }
+    else if ("create" in options) {
+      createBatch(options.create as string, options.key as string);
+    }
+    else if ("list" in options) {
+      listBatches(options.key as string)
+    }
+    else if ("query" in options) {
+      queryBatch(options.query as string, options.key as string);
+    }
+    else if ("save" in options) {
+      saveBatch(options.save as string, options.key as string);
+    }
+    else if ("terminate" in options) {
+      terminateBatch(options.terminate as string, options.key as string);
+    }
   });
 
 program

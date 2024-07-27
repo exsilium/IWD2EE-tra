@@ -25,7 +25,7 @@ async function parseTraFile(inputFilePath: string, outputFilePath: string, encod
   let recording: boolean = false;
 
   for await (const line of rl) {
-    if (!line.trim() || line.trim().startsWith('//')) continue;
+    if ((!line.trim() && !recording) || line.trim().startsWith('//')) continue;
 
     if (!recording && line.trim().match(/^@\d+/)) {
       const match = line.match(/^@(\d+) *= *~/);

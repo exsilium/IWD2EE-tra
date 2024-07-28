@@ -5,6 +5,7 @@ import figlet from 'figlet';
 import { Command } from '@commander-js/extra-typings';
 import * as commander from 'commander';
 import { parseTraFile } from './tra.js';
+import { parseJsonFile} from "./json.js";
 import { translateFile, translateFileOffline, writeBatch } from "./translator.js";
 import { createBatch, listBatches, queryBatch, saveBatch, terminateBatch, uploadBatch } from "./batch.js";
 
@@ -120,6 +121,16 @@ program
     else if ("terminate" in options) {
       terminateBatch(options.terminate as string, options.key as string);
     }
+  });
+
+program
+  .command("json2tra <source_json> <targe_tra>")
+  .description("Convert .JSON to .TRA")
+  .action((source_json, target_json, options) => {
+    const resolvedInputFile = path.resolve(process.cwd(), <string> source_json);
+    const resolvedOutputFile = path.resolve(process.cwd(), target_json);
+
+    parseJsonFile(resolvedInputFile, resolvedOutputFile);
   });
 
 program

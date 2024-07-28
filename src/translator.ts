@@ -3,6 +3,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as readline from 'readline';
 
+const system_prompt: string = 'Translate to Estonian, Icewind Dale 2, keeping the tone. Be short and precise, do not answer questions. If not possible to translate, start the response with "!$!$!$"';
+
 interface batchRequest {
   custom_id: string;
   method: "POST";
@@ -32,9 +34,9 @@ const translateText = async (text: string, apiKey: string): Promise<string> => {
 
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-4-turbo",
+      model: "gpt-4o-mini",
       messages: [
-        { role: 'system', content: 'Translate to Estonian, Icewind Dale 2, keeping the tone. Be short and precise. If not possible to translate, start the response with "!$!$!$"' },
+        { role: 'system', content: system_prompt },
         { role: 'user', content: `${text}` }
       ]
     });
@@ -181,11 +183,11 @@ const writeBatch = async (filePath: string, outputFilePath: string, startIndex: 
           method: "POST",
           url: "/v1/chat/completions",
           body : {
-            model: "gpt-4-turbo",
+            model: "gpt-4o-mini",
             messages: [
               {
                 role: 'system',
-                content: 'Translate to Estonian, Icewind Dale 2, keeping the tone. Be short and precise. If not possible to translate, start the response with "!$!$!$"'
+                content: system_prompt
               },
               {role: 'user', content: `${parts.mainText}`}
             ]
@@ -203,7 +205,7 @@ const writeBatch = async (filePath: string, outputFilePath: string, startIndex: 
 
 function splitText(inputString: string): { startTag?: string, mainText: string, endTag?: string } {
   // Define the regex pattern to capture the tags and the inner content
-  const pattern = /^\[(.*?)\]\s*(.*?)\s*\[(.*?)\]$/;
+  const pattern = /^(?:\[(.*?)\]\s*)?([\s\S]*?)(?:\s*\[(.*?)\])?\s*$/;
 
   // Execute the pattern against the input string
   const match = inputString.match(pattern);

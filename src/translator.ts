@@ -205,7 +205,7 @@ const writeBatch = async (filePath: string, outputFilePath: string, startIndex: 
 
 function splitText(inputString: string): { startTag?: string, mainText: string, endTag?: string } {
   // Define the regex pattern to capture the tags and the inner content
-  const pattern = /^(?:\[(.*?)\]\s*)?([\s\S]*?)(?:\s*\[(.*?)\])?\s*$/;
+  const pattern = /^(?:\[(.*?)\]\s*)?([\s\S]*?)(?:\s*\[([A-Z0-9]+)\])?\s*$/;
 
   // Execute the pattern against the input string
   const match = inputString.match(pattern);
